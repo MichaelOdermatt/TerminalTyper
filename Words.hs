@@ -1,7 +1,7 @@
-module Words (wordList) where
+module Words (wordBank) where
 
-wordList :: [String]
-wordList = 
+wordBank :: [String]
+wordBank = 
     [
         "a",
         "ability",

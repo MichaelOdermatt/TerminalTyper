@@ -1,12 +1,12 @@
 module Main (main) where
-import Words (wordList)
+import Words (wordBank)
 import Data.Char
 import System.IO
 import System.Random
 
 main :: IO ()
 main = do
-    hSetBuffering stdin NoBuffering   
+    hSetBuffering stdin NoBuffering
     hSetEcho stdin False
     mainLoop
 
@@ -15,10 +15,13 @@ mainLoop = mainLoop' 0
 
 mainLoop' :: Int -> IO ()
 mainLoop' numOfCorrectWords = do
-    num <- randomRIO (0, length wordList) :: IO Int
-    let wordFromList = wordList !! num
+    randomInt <- getRandomInt (length wordBank)
+    let wordFromList = wordBank !! randomInt
+
+    putStr clearScreen
     print ("Correct words: " ++ show numOfCorrectWords)
     print wordFromList
+
     wordFromUser <- getUserInput
     if wordFromList == wordFromUser then
         mainLoop' (numOfCorrectWords + 1)
@@ -27,7 +30,7 @@ mainLoop' numOfCorrectWords = do
 
 getUserInput :: IO [Char]
 getUserInput = getUserInput' ""
-    
+
 getUserInput' :: String -> IO [Char]
 getUserInput' xs = do
     inputChar <- getChar
@@ -37,9 +40,25 @@ getUserInput' xs = do
         '\DEL' ->
             if xs == "" then
                 getUserInput' ""
-            else do 
-                putStr "\b \b"
+            else do
+                putStr removeLastCharacter
                 getUserInput' (init xs)
-        _ -> do  
+        _ -> do
             putChar inputChar
             getUserInput' (xs ++ [inputChar])
+
+getRandomInt :: Int -> IO Int
+getRandomInt upperRange = do randomRIO (0, upperRange) :: IO Int
+
+-------------------- Pure Functions
+
+-- | Takes an array of indexes and returns an array of the Strings at thoes indexes in the wordBank
+getWordsFromWordBank :: [Int] -> [String]
+getWordsFromWordBank = map (wordBank !!)
+
+-------------------- ANSI escape sequences
+clearScreen :: String
+clearScreen = "\ESC[2J"
+
+removeLastCharacter :: String
+removeLastCharacter = "\b \b"
