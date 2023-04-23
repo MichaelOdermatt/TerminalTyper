@@ -11,22 +11,20 @@ main = do
     mainLoop
 
 mainLoop :: IO ()
-mainLoop = mainLoop' 0
+mainLoop = do
+    randomNums <- getListOfRandomInts 10 (length wordBank)
+    let initialWordList = getWordsFromWordBank randomNums
+    mainLoop' initialWordList
 
-mainLoop' :: Int -> IO ()
-mainLoop' numOfCorrectWords = do
-    randomInt <- getRandomInt (length wordBank)
-    let wordFromList = wordBank !! randomInt
-
-    putStr clearScreen
-    print ("Correct words: " ++ show numOfCorrectWords)
-    print wordFromList
-
+mainLoop' :: [String] -> IO ()
+mainLoop' wordList = do
+    randomNum <- getRandomInt (length wordBank)
+    let extendedWordList = wordList ++ [wordBank !! randomNum]
+    let firstWordFromList = head extendedWordList
+    printListOfWords extendedWordList
     wordFromUser <- getUserInput
-    if wordFromList == wordFromUser then
-        mainLoop' (numOfCorrectWords + 1)
-    else
-        mainLoop' numOfCorrectWords
+    -- let wasSuccessful = (wordFromList == wordFromUser) will use this later
+    mainLoop' (tail extendedWordList)
 
 getUserInput :: IO [Char]
 getUserInput = getUserInput' ""
@@ -50,13 +48,28 @@ getUserInput' xs = do
 getRandomInt :: Int -> IO Int
 getRandomInt upperRange = do randomRIO (0, upperRange) :: IO Int
 
+-- | First argument is the length of the list. The second argument is the upper range for the list values (0 - upperRange)
+getListOfRandomInts :: Int -> Int -> IO [Int]
+getListOfRandomInts 0 _ = return []
+getListOfRandomInts x upperRange = do
+    num <- getRandomInt upperRange
+    nums <- getListOfRandomInts (x - 1) upperRange
+    return (num:nums)
+
+-- | Prints the list of words to the user, with the first word in the list colored differently
+printListOfWords :: [String] -> IO ()
+printListOfWords wordList = do
+    putStr clearScreen
+    print wordList
+
 -------------------- Pure Functions
 
--- | Takes an array of indexes and returns an array of the Strings at thoes indexes in the wordBank
+-- | Takes a List of indexes and returns the Strings at thoes indexes in the wordBank
 getWordsFromWordBank :: [Int] -> [String]
 getWordsFromWordBank = map (wordBank !!)
 
 -------------------- ANSI escape sequences
+-- all excape codes can be found here https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
 clearScreen :: String
 clearScreen = "\ESC[2J"
 
