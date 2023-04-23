@@ -7,24 +7,39 @@ import System.Random
 main :: IO ()
 main = do
     hSetBuffering stdin NoBuffering   
-    mainLoop 0
+    hSetEcho stdin False
+    mainLoop
 
-mainLoop :: Int -> IO ()
-mainLoop numOfCorrectWords = do
+mainLoop :: IO ()
+mainLoop = mainLoop' 0
+
+mainLoop' :: Int -> IO ()
+mainLoop' numOfCorrectWords = do
     num <- randomRIO (0, length wordList) :: IO Int
     let wordFromList = wordList !! num
     print ("Correct words: " ++ show numOfCorrectWords)
     print wordFromList
-    wordFromUser <- getUserInput ""
-    if wordFromList == wordFromUser then 
-        mainLoop (numOfCorrectWords + 1)
+    wordFromUser <- getUserInput
+    if wordFromList == wordFromUser then
+        mainLoop' (numOfCorrectWords + 1)
     else
-        mainLoop numOfCorrectWords
+        mainLoop' numOfCorrectWords
+
+getUserInput :: IO [Char]
+getUserInput = getUserInput' ""
     
-getUserInput :: String -> IO [Char]
-getUserInput s = do
+getUserInput' :: String -> IO [Char]
+getUserInput' xs = do
     inputChar <- getChar
-    if isSpace inputChar then
-        return s
-    else 
-        getUserInput (s ++ [inputChar])
+    case inputChar of
+        c | isSpace c ->
+            return xs
+          | c == '\DEL' ->
+            if xs == "" then
+                getUserInput' ""
+            else do 
+                putStr "\b \b"
+                getUserInput' (init xs)
+          | otherwise -> do  
+            putChar inputChar
+            getUserInput' (xs ++ [inputChar])
