@@ -34,12 +34,12 @@ getUserInput' xs = do
     case inputChar of
         c | isSpace c ->
             return xs
-          | c == '\DEL' ->
+        '\DEL' ->
             if xs == "" then
                 getUserInput' ""
             else do 
                 putStr "\b \b"
                 getUserInput' (init xs)
-          | otherwise -> do  
+        _ -> do  
             putChar inputChar
             getUserInput' (xs ++ [inputChar])
