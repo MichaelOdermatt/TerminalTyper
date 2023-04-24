@@ -22,6 +22,7 @@ mainLoop' wordList = do
     let extendedWordList = wordList ++ [wordBank !! randomNum]
     let firstWordFromList = head extendedWordList
     printListOfWords extendedWordList
+    putStrLn ""
     wordFromUser <- getUserInput
     -- let wasSuccessful = (wordFromList == wordFromUser) will use this later
     mainLoop' (tail extendedWordList)
@@ -58,9 +59,21 @@ getListOfRandomInts x upperRange = do
 
 -- | Prints the list of words to the user, with the first word in the list colored differently
 printListOfWords :: [String] -> IO ()
-printListOfWords wordList = do
+printListOfWords (word:words) = do
     putStr clearScreen
-    print wordList
+    putStrLn ""
+    putStr textColorCyan
+    putStr word
+    putStr textColorReset
+    printListOfWords' words
+
+printListOfWords' :: [String] -> IO ()
+printListOfWords' (word:words) 
+    | null words = do 
+        return ()
+    | otherwise = do
+        putStr (" " ++ word)
+        printListOfWords' words
 
 -------------------- Pure Functions
 
@@ -70,6 +83,12 @@ getWordsFromWordBank = map (wordBank !!)
 
 -------------------- ANSI escape sequences
 -- all excape codes can be found here https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
+textColorReset :: String
+textColorReset = "\ESC[0m"
+
+textColorCyan :: String
+textColorCyan = "\ESC[36m"
+
 clearScreen :: String
 clearScreen = "\ESC[2J"
 
