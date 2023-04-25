@@ -14,18 +14,18 @@ mainLoop :: IO ()
 mainLoop = do
     randomNums <- getListOfRandomInts 10 (length wordBank)
     let initialWordList = getWordsFromWordBank randomNums
-    mainLoop' initialWordList
+    mainLoop' initialWordList 0
 
-mainLoop' :: [String] -> IO ()
-mainLoop' wordList = do
-    randomNum <- getRandomInt (length wordBank)
+mainLoop' :: [String] -> Int -> IO ()
+mainLoop' wordList wordIndex = do
+    randomNum <- getRandomInt (length wordBank - 1)
     let extendedWordList = wordList ++ [wordBank !! randomNum]
-    let firstWordFromList = head extendedWordList
-    printListOfWords extendedWordList
+    let currentWord = wordList !! wordIndex
+    printListOfWords extendedWordList wordIndex
     putStrLn ""
     wordFromUser <- getUserInput
     -- let wasSuccessful = (wordFromList == wordFromUser) will use this later
-    mainLoop' (tail extendedWordList)
+    mainLoop' extendedWordList (wordIndex + 1)
 
 getUserInput :: IO [Char]
 getUserInput = getUserInput' ""
@@ -58,22 +58,25 @@ getListOfRandomInts x upperRange = do
     return (num:nums)
 
 -- | Prints the list of words to the user, with the first word in the list colored differently
-printListOfWords :: [String] -> IO ()
-printListOfWords (word:words) = do
+-- TODO: Two issues with this method 1: the output doesn't wrap at spaces which means words get cut off
+printListOfWords :: [String] -> Int -> IO ()
+printListOfWords words highlightedWordIndex = do
     putStr clearScreen
     putStrLn ""
-    putStr textColorCyan
-    putStr word
-    putStr textColorReset
-    printListOfWords' words
+    printListOfWords' words 0 highlightedWordIndex
 
-printListOfWords' :: [String] -> IO ()
-printListOfWords' (word:words) 
+printListOfWords' :: [String] -> Int -> Int -> IO ()
+printListOfWords' (word:words) currentIndex highlightedWordIndex 
     | null words = do 
         return ()
+    | currentIndex == highlightedWordIndex = do
+        putStr textColorCyan
+        putStr (" " ++ word)
+        putStr textColorReset
+        printListOfWords' words (currentIndex + 1) highlightedWordIndex
     | otherwise = do
         putStr (" " ++ word)
-        printListOfWords' words
+        printListOfWords' words (currentIndex + 1) highlightedWordIndex
 
 -------------------- Pure Functions
 
