@@ -20,10 +20,9 @@ mainLoop' :: [String] -> Int -> IO ()
 mainLoop' wordList wordIndex = do
     randomNum <- getRandomInt (length wordBank - 1)
     let extendedWordList = wordList ++ [wordBank !! randomNum]
-    let currentWord = wordList !! wordIndex
     putStr clearScreen
     putStrLn ""
-    putStrLn (insertLineBreaks (joinStringsWithSpaces (highlightStringInList extendedWordList currentWord)))
+    putStrLn (insertLineBreaks (joinStringsWithSpaces (highlightStringInList extendedWordList wordIndex)))
     putStrLn ""
     wordFromUser <- getUserInput
     -- let wasSuccessful = (wordFromList == wordFromUser) will use this later
@@ -65,13 +64,15 @@ getListOfRandomInts x upperRange = do
 getWordsFromWordBank :: [Int] -> [String]
 getWordsFromWordBank = map (wordBank !!)
 
--- | Returns a the given list with the first occurance of the given word highlighted
--- TODO fix this since this wont work if the word shows up more than once
-highlightStringInList :: [String] -> String -> [String]
-highlightStringInList [] _ = []
-highlightStringInList (word:words) wordToHighlight
-    | word == wordToHighlight = (textColorCyan ++ word ++ textColorReset) : words
-    | otherwise = word : highlightStringInList words wordToHighlight
+-- | Returns a the given list with the word at the given index highlighted using the textColorCyan function
+highlightStringInList :: [String] -> Int -> [String]
+highlightStringInList words wordIndex = highlightStringInList' words wordIndex 0
+
+highlightStringInList' :: [String] -> Int -> Int-> [String]
+highlightStringInList' [] _ _ = []
+highlightStringInList' (word:words) wordIndex count
+    | wordIndex == count = (textColorCyan ++ word ++ textColorReset) : words
+    | otherwise = word : highlightStringInList' words wordIndex (count + 1)
 
 {-  |
     Takes a string and inserts a line break at the next space character after every x 
@@ -83,6 +84,7 @@ insertLineBreaks x = insertLineBreaks' x 1
 insertLineBreaks' :: String -> Int -> String
 insertLineBreaks' [] _ = []
 insertLineBreaks' (x:xs) count
+    | x == '\ESC' = x : insertLineBreaks' xs (count - 4) -- TODO maybe think of a better way to do this
     | count >= lineCharacterLimit && x == ' ' = '\n' : insertLineBreaks' xs 1
     | otherwise = x : insertLineBreaks' xs (count + 1)
 
@@ -93,7 +95,7 @@ removeLastCharacter :: String
 removeLastCharacter = "\b \b"
 
 lineCharacterLimit :: Int
-lineCharacterLimit = 50
+lineCharacterLimit = 80
 
 -------------------- ANSI escape sequences
 -- all excape codes can be found here https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
