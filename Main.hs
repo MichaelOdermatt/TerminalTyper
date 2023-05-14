@@ -1,51 +1,75 @@
 module Main (main) where
 import Words (wordBank)
 import Data.Char
+import Data.Time
 import System.IO
 import System.Random
+import Control.Exception
+import Control.Concurrent
+import GHC.IO.Handle (hWaitForInput)
 
 main :: IO ()
 main = do
     hSetBuffering stdin NoBuffering
     hSetEcho stdin False
-    mainLoop
+    startTime <- getCurrentTime
+    mainLoop (addUTCTime 60 startTime)
 
-mainLoop :: IO ()
-mainLoop = do
+{-
+    | 
+    The main loop function which takes a UTCTime deadline value.
+    This value represents the time limit in which the user can type.
+-}
+mainLoop :: UTCTime -> IO ()
+mainLoop deadline = do
     randomNums <- getListOfRandomInts 50 (length wordBank)
     let initialWordList = getWordsFromWordBank randomNums
-    mainLoop' initialWordList 0
+    mainLoop' initialWordList 0 deadline
 
-mainLoop' :: [String] -> Int -> IO ()
-mainLoop' wordList wordIndex = do
+mainLoop' :: [String] -> Int -> UTCTime -> IO ()
+mainLoop' wordList wordIndex deadline = do
     randomNum <- getRandomInt (length wordBank - 1)
     let extendedWordList = wordList ++ [wordBank !! randomNum]
     putStr clearScreen
     putStrLn ""
     putStrLn (insertLineBreaks (joinStringsWithSpaces (highlightStringInList extendedWordList wordIndex)))
     putStrLn ""
-    wordFromUser <- getUserInput
-    -- let wasSuccessful = (wordFromList == wordFromUser) will use this later
-    mainLoop' extendedWordList (wordIndex + 1)
+    wordFromUser <- getUserInputWithTimer deadline
+    case wordFromUser of
+        -- let wasSuccessful = (wordFromList == wordFromUser) will use this later
+        Just x -> mainLoop' extendedWordList (wordIndex + 1) deadline
+        Nothing -> return ()
 
-getUserInput :: IO [Char]
-getUserInput = getUserInput' ""
+{-
+    | 
+    This function gets the input word from the user. This function has a deadline
+    parameter which is the amount of time the user has to input the next word before
+    the function times out.
+-}
+getUserInputWithTimer :: UTCTime -> IO (Maybe [Char])
+getUserInputWithTimer deadline = getUserInputWithTimer' "" deadline
 
-getUserInput' :: String -> IO [Char]
-getUserInput' xs = do
-    inputChar <- getChar
-    case inputChar of
-        c | isSpace c ->
-            return xs
-        '\DEL' ->
-            if xs == "" then
-                getUserInput' ""
-            else do
-                putStr removeLastCharacter
-                getUserInput' (init xs)
-        _ -> do
-            putChar inputChar
-            getUserInput' (xs ++ [inputChar])
+getUserInputWithTimer' :: String -> UTCTime -> IO (Maybe [Char])
+getUserInputWithTimer' xs deadline = do
+    now <- getCurrentTime
+    inputReady <- hWaitForInput stdin (round (diffUTCTime deadline now * 1000))
+    if inputReady then do
+        inputChar <- getChar
+        case inputChar of
+            c | isSpace c ->
+                return (Just xs)
+            '\DEL' ->
+                if xs == "" then
+                    getUserInputWithTimer' "" deadline
+                else do
+                    putStr removeLastCharacter
+                    getUserInputWithTimer' (init xs) deadline
+            _ -> do
+                putChar inputChar
+                getUserInputWithTimer' (xs ++ [inputChar]) deadline
+    else return Nothing
+
+-------------------- For generating random numbers
 
 getRandomInt :: Int -> IO Int
 getRandomInt upperRange = do randomRIO (0, upperRange) :: IO Int
