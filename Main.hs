@@ -13,7 +13,7 @@ main = do
     hSetBuffering stdin NoBuffering
     hSetEcho stdin False
     startTime <- getCurrentTime
-    mainLoop (addUTCTime 60 startTime)
+    mainLoop (addUTCTime typingTimeLimit startTime)
 
 {-
     | 
@@ -47,7 +47,7 @@ mainLoop' wordList wordIndex deadline = do
     the function times out.
 -}
 getUserInputWithTimer :: UTCTime -> IO (Maybe [Char])
-getUserInputWithTimer deadline = getUserInputWithTimer' "" deadline
+getUserInputWithTimer = getUserInputWithTimer' ""
 
 getUserInputWithTimer' :: String -> UTCTime -> IO (Maybe [Char])
 getUserInputWithTimer' xs deadline = do
@@ -108,18 +108,38 @@ insertLineBreaks x = insertLineBreaks' x 1
 insertLineBreaks' :: String -> Int -> String
 insertLineBreaks' [] _ = []
 insertLineBreaks' (x:xs) count
-    | x == '\ESC' = x : insertLineBreaks' xs (count - 4) -- TODO maybe think of a better way to do this
+    | x == '\ESC' = getEntireEscapeSequence (x:xs) ++ insertLineBreaks' (getWithoutEscapeSequence xs) count
     | count >= lineCharacterLimit && x == ' ' = '\n' : insertLineBreaks' xs 1
     | otherwise = x : insertLineBreaks' xs (count + 1)
+        where
+            -- | All color escape sequences end with the letter m.
+            getWithoutEscapeSequence :: String -> String
+            getWithoutEscapeSequence xs = getAllElementsAfterPoint xs 'm'
+            getEntireEscapeSequence :: String -> String
+            getEntireEscapeSequence xs = getAllElementsUpToPoint xs 'm' 
+
 
 joinStringsWithSpaces :: [String] -> String
 joinStringsWithSpaces = foldr (\ x y -> x ++ " " ++ y) ""
 
+-- | Returns the entire array until the given value is encountered
+getAllElementsUpToPoint :: Eq a => [a] -> a -> [a]
+getAllElementsUpToPoint xs val = takeWhile (/= val) xs
+
+-- | Returns the remainder of the array after the given value is encountered
+getAllElementsAfterPoint :: Eq a => [a] -> a -> [a]
+getAllElementsAfterPoint xs val = dropWhile (/= val) xs
+
 removeLastCharacter :: String
 removeLastCharacter = "\b \b"
 
+-- | The character limit per line when printing the word list.
 lineCharacterLimit :: Int
 lineCharacterLimit = 80
+
+-- | The time limit that the user has to type as many words as they can
+typingTimeLimit :: NominalDiffTime
+typingTimeLimit = 60
 
 -------------------- ANSI escape sequences
 -- all excape codes can be found here https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
