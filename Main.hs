@@ -122,13 +122,13 @@ insertLineBreaks' (x:xs) count
 joinStringsWithSpaces :: [String] -> String
 joinStringsWithSpaces = foldr (\ x y -> x ++ " " ++ y) ""
 
--- | Returns the entire array until the given value is encountered
+-- | Returns the entire array up until and including the given value
 getAllElementsUpToPoint :: Eq a => [a] -> a -> [a]
-getAllElementsUpToPoint xs val = takeWhile (/= val) xs
+getAllElementsUpToPoint xs val = takeWhile (/= val) xs ++ [val]
 
--- | Returns the remainder of the array after the given value is encountered
+-- | Returns the remainder of the array after the given value 
 getAllElementsAfterPoint :: Eq a => [a] -> a -> [a]
-getAllElementsAfterPoint xs val = dropWhile (/= val) xs
+getAllElementsAfterPoint xs val = tail (dropWhile (/= val) xs)
 
 removeLastCharacter :: String
 removeLastCharacter = "\b \b"
