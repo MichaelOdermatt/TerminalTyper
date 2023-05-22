@@ -24,21 +24,29 @@ mainLoop :: UTCTime -> IO ()
 mainLoop deadline = do
     randomNums <- getListOfRandomInts 50 (length wordBank)
     let initialWordList = getWordsFromWordBank randomNums
-    mainLoop' initialWordList 0 deadline
+    mainLoop' initialWordList 0 0 deadline
 
-mainLoop' :: [String] -> Int -> UTCTime -> IO ()
-mainLoop' wordList wordIndex deadline = do
+mainLoop' :: [String] -> Int -> Int -> UTCTime -> IO ()
+mainLoop' wordList wordIndex numOfCorrectWords deadline = do
     randomNum <- getRandomInt (length wordBank - 1)
     let extendedWordList = wordList ++ [wordBank !! randomNum]
     putStr clearScreen
     putStrLn ""
     putStrLn (insertLineBreaks (joinStringsWithSpaces (highlightStringInList extendedWordList wordIndex)))
     putStrLn ""
-    wordFromUser <- getUserInputWithTimer deadline
-    case wordFromUser of
-        -- let wasSuccessful = (wordFromList == wordFromUser) will use this later
-        Just x -> mainLoop' extendedWordList (wordIndex + 1) deadline
-        Nothing -> return ()
+    possibleWordFromUser <- getUserInputWithTimer deadline
+    case possibleWordFromUser of
+        Just wordFromUser -> do
+            let wordFromList = wordList !! wordIndex
+            if wordFromList == wordFromUser then do
+                mainLoop' extendedWordList (wordIndex + 1) (numOfCorrectWords + 1) deadline
+            else do
+                mainLoop' extendedWordList (wordIndex + 1) numOfCorrectWords deadline
+        Nothing -> do
+            putStr clearScreen
+            putStrLn ""
+            putStrLn ("Your typing speed is " ++ show numOfCorrectWords ++ " wpm")
+            return ()
 
 {-
     | 
@@ -116,7 +124,7 @@ insertLineBreaks' (x:xs) count
             getWithoutEscapeSequence :: String -> String
             getWithoutEscapeSequence xs = getAllElementsAfterPoint xs 'm'
             getEntireEscapeSequence :: String -> String
-            getEntireEscapeSequence xs = getAllElementsUpToPoint xs 'm' 
+            getEntireEscapeSequence xs = getAllElementsUpToPoint xs 'm'
 
 
 joinStringsWithSpaces :: [String] -> String
