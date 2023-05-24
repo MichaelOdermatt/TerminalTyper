@@ -2,6 +2,7 @@ module Main (main) where
 import Words (wordBank)
 import Data.Char
 import Data.Time
+import Data.Function
 import System.IO
 import System.Random
 import Control.Exception
@@ -45,7 +46,7 @@ mainLoop' wordList wordIndex numOfCorrectWords deadline = do
         Nothing -> do
             putStr clearScreen
             putStrLn ""
-            putStrLn ("Your typing speed is " ++ show numOfCorrectWords ++ " wpm")
+            putStrLn ("Your typing speed is " ++ show (calcWordsPerMinute numOfCorrectWords) ++ " wpm")
             return ()
 
 {-
@@ -79,6 +80,7 @@ getUserInputWithTimer' xs deadline = do
 
 -------------------- For generating random numbers
 
+-- TODO fix bug where the random function sometimes produces numbers too large for the wordbank
 getRandomInt :: Int -> IO Int
 getRandomInt upperRange = do randomRIO (0, upperRange) :: IO Int
 
@@ -137,6 +139,12 @@ getAllElementsUpToPoint xs val = takeWhile (/= val) xs ++ [val]
 -- | Returns the remainder of the array after the given value 
 getAllElementsAfterPoint :: Eq a => [a] -> a -> [a]
 getAllElementsAfterPoint xs val = tail (dropWhile (/= val) xs)
+
+calcWordsPerMinute :: Int -> Int
+calcWordsPerMinute numOfWords = floor ((numOfWords `divideIntToFloat` floor typingTimeLimit) * 60.0)
+
+divideIntToFloat :: Int -> Int -> Float
+divideIntToFloat x y = fromIntegral x / fromIntegral y
 
 removeLastCharacter :: String
 removeLastCharacter = "\b \b"
