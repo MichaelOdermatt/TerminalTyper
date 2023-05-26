@@ -11,24 +11,37 @@ import GHC.IO.Handle (hWaitForInput)
 
 main :: IO ()
 main = do
+    hSetBuffering stdin LineBuffering
+    hSetEcho stdin True
+    typingDuration <- promptUserForTypingDuration
     hSetBuffering stdin NoBuffering
     hSetEcho stdin False
     startTime <- getCurrentTime
-    mainLoop (addUTCTime typingTimeLimit startTime)
+    mainLoop (addUTCTime (convertToNominalDiffTime typingDuration) startTime) typingDuration
+
+promptUserForTypingDuration :: IO Int
+promptUserForTypingDuration = do
+    putStr clearScreen
+    putStrLn ""
+    putStrLn "Please enter the duration you would like to type for."
+    putStrLn ""
+    input <- getLine
+    let time = (read input :: Int)
+    return time
 
 {-
     | 
     The main loop function which takes a UTCTime deadline value.
     This value represents the time limit in which the user can type.
 -}
-mainLoop :: UTCTime -> IO ()
-mainLoop deadline = do
-    randomNums <- getListOfRandomInts 50 (length wordBank)
+mainLoop :: UTCTime -> Int -> IO ()
+mainLoop deadline typingDuration = do
+    randomNums <- getListOfRandomInts 50 (length wordBank - 1)
     let initialWordList = getWordsFromWordBank randomNums
-    mainLoop' initialWordList 0 0 deadline
+    mainLoop' initialWordList 0 0 typingDuration deadline
 
-mainLoop' :: [String] -> Int -> Int -> UTCTime -> IO ()
-mainLoop' wordList wordIndex numOfCorrectWords deadline = do
+mainLoop' :: [String] -> Int -> Int -> Int -> UTCTime -> IO ()
+mainLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
     randomNum <- getRandomInt (length wordBank - 1)
     let extendedWordList = wordList ++ [wordBank !! randomNum]
     putStr clearScreen
@@ -40,13 +53,13 @@ mainLoop' wordList wordIndex numOfCorrectWords deadline = do
         Just wordFromUser -> do
             let wordFromList = wordList !! wordIndex
             if wordFromList == wordFromUser then do
-                mainLoop' extendedWordList (wordIndex + 1) (numOfCorrectWords + 1) deadline
+                mainLoop' extendedWordList (wordIndex + 1) (numOfCorrectWords + 1) typingDuration deadline
             else do
-                mainLoop' extendedWordList (wordIndex + 1) numOfCorrectWords deadline
+                mainLoop' extendedWordList (wordIndex + 1) numOfCorrectWords typingDuration deadline
         Nothing -> do
             putStr clearScreen
             putStrLn ""
-            putStrLn ("Your typing speed is " ++ show (calcWordsPerMinute numOfCorrectWords) ++ " wpm")
+            putStrLn ("Your typing speed is " ++ show (calcWordsPerMinute numOfCorrectWords typingDuration) ++ " wpm")
             return ()
 
 {-
@@ -80,7 +93,6 @@ getUserInputWithTimer' xs deadline = do
 
 -------------------- For generating random numbers
 
--- TODO fix bug where the random function sometimes produces numbers too large for the wordbank
 getRandomInt :: Int -> IO Int
 getRandomInt upperRange = do randomRIO (0, upperRange) :: IO Int
 
@@ -94,7 +106,7 @@ getListOfRandomInts x upperRange = do
 
 -------------------- Pure Functions
 
--- | Takes a List of indexes and returns the Strings at thoes indexes in the wordBank
+-- | Takes a list of indexes and returns the Strings at thoes indexes in the wordBank
 getWordsFromWordBank :: [Int] -> [String]
 getWordsFromWordBank = map (wordBank !!)
 
@@ -140,11 +152,14 @@ getAllElementsUpToPoint xs val = takeWhile (/= val) xs ++ [val]
 getAllElementsAfterPoint :: Eq a => [a] -> a -> [a]
 getAllElementsAfterPoint xs val = tail (dropWhile (/= val) xs)
 
-calcWordsPerMinute :: Int -> Int
-calcWordsPerMinute numOfWords = floor ((numOfWords `divideIntToFloat` floor typingTimeLimit) * 60.0)
+calcWordsPerMinute :: Int -> Int -> Int
+calcWordsPerMinute numOfWords typingDuration = floor ((numOfWords `divideIntToFloat` typingDuration) * 60.0)
 
 divideIntToFloat :: Int -> Int -> Float
 divideIntToFloat x y = fromIntegral x / fromIntegral y
+
+convertToNominalDiffTime :: Int -> NominalDiffTime
+convertToNominalDiffTime seconds = realToFrac (toRational seconds) :: NominalDiffTime
 
 removeLastCharacter :: String
 removeLastCharacter = "\b \b"
@@ -152,10 +167,6 @@ removeLastCharacter = "\b \b"
 -- | The character limit per line when printing the word list.
 lineCharacterLimit :: Int
 lineCharacterLimit = 80
-
--- | The time limit that the user has to type as many words as they can
-typingTimeLimit :: NominalDiffTime
-typingTimeLimit = 60
 
 -------------------- ANSI escape sequences
 -- all excape codes can be found here https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
