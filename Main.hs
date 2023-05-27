@@ -1,8 +1,10 @@
 module Main (main) where
 import Words (wordBank)
+import Text.Read
 import Data.Char
 import Data.Time
 import Data.Function
+import Data.Maybe
 import System.IO
 import System.Random
 import Control.Exception
@@ -14,20 +16,25 @@ main = do
     hSetBuffering stdin LineBuffering
     hSetEcho stdin True
     typingDuration <- promptUserForTypingDuration
-    hSetBuffering stdin NoBuffering
-    hSetEcho stdin False
-    startTime <- getCurrentTime
-    mainLoop (addUTCTime (convertToNominalDiffTime typingDuration) startTime) typingDuration
+    case typingDuration of
+        Just time -> do
+            hSetBuffering stdin NoBuffering
+            hSetEcho stdin False
+            startTime <- getCurrentTime
+            mainLoop (addUTCTime (convertToNominalDiffTime time) startTime) time
+        Nothing -> do
+            putStrLn ""
+            putStrLn "Error: An invalid input was given."
+            putStrLn ""
+            return ()
 
-promptUserForTypingDuration :: IO Int
+promptUserForTypingDuration :: IO (Maybe Int)
 promptUserForTypingDuration = do
     putStr clearScreen
     putStrLn ""
     putStrLn "Please enter the duration you would like to type for."
     putStrLn ""
-    input <- getLine
-    let time = (read input :: Int)
-    return time
+    readMaybe <$> getLine
 
 {-
     | 
