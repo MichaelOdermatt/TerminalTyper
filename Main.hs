@@ -13,42 +13,43 @@ import GHC.IO.Handle (hWaitForInput)
 
 main :: IO ()
 main = do
-    hSetBuffering stdin LineBuffering
-    hSetEcho stdin True
     typingDuration <- promptUserForTypingDuration
     case typingDuration of
-        Just time -> do
-            hSetBuffering stdin NoBuffering
-            hSetEcho stdin False
-            startTime <- getCurrentTime
-            mainLoop (addUTCTime (convertToNominalDiffTime time) startTime) time
+        Just duration -> startTypingLoop duration
         Nothing -> do
             putStrLn ""
             putStrLn "Error: An invalid input was given."
-            putStrLn ""
             return ()
 
 promptUserForTypingDuration :: IO (Maybe Int)
 promptUserForTypingDuration = do
+    hSetBuffering stdin LineBuffering
+    hSetEcho stdin True
     putStr clearScreen
     putStrLn ""
     putStrLn "Please enter the duration you would like to type for."
     putStrLn ""
     readMaybe <$> getLine
 
+startTypingLoop :: Int -> IO ()
+startTypingLoop typingDuration = do
+    hSetBuffering stdin NoBuffering
+    hSetEcho stdin False
+    startTime <- getCurrentTime
+    typingLoop (addUTCTime (convertToNominalDiffTime typingDuration) startTime) typingDuration
+
 {-
-    | 
-    The main loop function which takes a UTCTime deadline value.
+    | The main loop function which takes a UTCTime deadline value.
     This value represents the time limit in which the user can type.
 -}
-mainLoop :: UTCTime -> Int -> IO ()
-mainLoop deadline typingDuration = do
+typingLoop :: UTCTime -> Int -> IO ()
+typingLoop deadline typingDuration = do
     randomNums <- getListOfRandomInts 50 (length wordBank - 1)
     let initialWordList = getWordsFromWordBank randomNums
-    mainLoop' initialWordList 0 0 typingDuration deadline
+    typingLoop' initialWordList 0 0 typingDuration deadline
 
-mainLoop' :: [String] -> Int -> Int -> Int -> UTCTime -> IO ()
-mainLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
+typingLoop' :: [String] -> Int -> Int -> Int -> UTCTime -> IO ()
+typingLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
     randomNum <- getRandomInt (length wordBank - 1)
     let extendedWordList = wordList ++ [wordBank !! randomNum]
     putStr clearScreen
@@ -60,18 +61,19 @@ mainLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
         Just wordFromUser -> do
             let wordFromList = wordList !! wordIndex
             if wordFromList == wordFromUser then do
-                mainLoop' extendedWordList (wordIndex + 1) (numOfCorrectWords + 1) typingDuration deadline
+                typingLoop' extendedWordList (wordIndex + 1) (numOfCorrectWords + 1) typingDuration deadline
             else do
-                mainLoop' extendedWordList (wordIndex + 1) numOfCorrectWords typingDuration deadline
+                typingLoop' extendedWordList (wordIndex + 1) numOfCorrectWords typingDuration deadline
         Nothing -> do
             putStr clearScreen
             putStrLn ""
             putStrLn ("Your typing speed is " ++ show (calcWordsPerMinute numOfCorrectWords typingDuration) ++ " wpm")
             return ()
 
+-------------------- Getting inputs from the user character by character
+
 {-
-    | 
-    This function gets the input word from the user. This function has a deadline
+    | This function gets the input word from the user. This function has a deadline
     parameter which is the amount of time the user has to input the next word before
     the function times out.
 -}
@@ -127,8 +129,7 @@ highlightStringInList' (word:words) wordIndex count
     | wordIndex == count = (textColorCyan ++ word ++ textColorReset) : words
     | otherwise = word : highlightStringInList' words wordIndex (count + 1)
 
-{-  |
-    Takes a string and inserts a line break at the next space character after every x 
+{-  | Takes a string and inserts a line break at the next space character after every x 
     amount of characters (x is the return of the lineCharacterLimit function).
 -}
 insertLineBreaks :: String -> String
