@@ -1,15 +1,14 @@
-module Main (main) where
+module Main where
+
 import Words (wordBank)
-import Text.Read
-import Data.Char
-import Data.Time
-import Data.Function
-import Data.Maybe
-import System.IO
-import System.Random
-import Control.Exception
-import Control.Concurrent
+import Text.Read (readMaybe)
+import Data.Char (isSpace)
+import Data.Time (NominalDiffTime, UTCTime, getCurrentTime, addUTCTime, diffUTCTime)
+import System.IO (BufferMode (LineBuffering), BufferMode (NoBuffering), hSetBuffering, stdin, hSetEcho)
+import System.Random (randomRIO)
 import GHC.IO.Handle (hWaitForInput)
+
+-------------------- IO Functions
 
 main :: IO ()
 main = do
