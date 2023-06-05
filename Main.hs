@@ -1,5 +1,3 @@
-module Main where
-
 import Words (wordBank)
 import Text.Read (readMaybe)
 import Data.Char (isSpace)
@@ -53,21 +51,20 @@ typingLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
     let extendedWordList = wordList ++ [wordBank !! randomNum]
     putStr clearScreen
     putStrLn ""
-    putStrLn (insertLineBreaks (joinStringsWithSpaces (highlightStringInList extendedWordList wordIndex)))
+    putStrLn $ insertLineBreaks $ joinStringsWithSpaces $ highlightStringInList extendedWordList wordIndex
     putStrLn ""
     possibleWordFromUser <- getUserInputWithTimer deadline
     case possibleWordFromUser of
         Just wordFromUser -> do
             let wordFromList = wordList !! wordIndex
-            if wordFromList == wordFromUser then do
+            if wordFromList == wordFromUser then
                 typingLoop' extendedWordList (wordIndex + 1) (numOfCorrectWords + 1) typingDuration deadline
-            else do
+            else
                 typingLoop' extendedWordList (wordIndex + 1) numOfCorrectWords typingDuration deadline
         Nothing -> do
             putStr clearScreen
             putStrLn ""
             putStrLn ("Your typing speed is " ++ show (calcWordsPerMinute numOfCorrectWords typingDuration) ++ " wpm")
-            return ()
 
 -------------------- Getting inputs from the user character by character
 
@@ -76,20 +73,20 @@ typingLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
     parameter which is the amount of time the user has to input the next word before
     the function times out.
 -}
-getUserInputWithTimer :: UTCTime -> IO (Maybe [Char])
+getUserInputWithTimer :: UTCTime -> IO (Maybe String)
 getUserInputWithTimer = getUserInputWithTimer' ""
 
-getUserInputWithTimer' :: String -> UTCTime -> IO (Maybe [Char])
+getUserInputWithTimer' :: String -> UTCTime -> IO (Maybe String)
 getUserInputWithTimer' xs deadline = do
     now <- getCurrentTime
-    inputReady <- hWaitForInput stdin (round (diffUTCTime deadline now * 1000))
+    let remainingTime = round (diffUTCTime deadline now * 1000)
+    inputReady <- hWaitForInput stdin remainingTime
     if inputReady then do
         inputChar <- getChar
         case inputChar of
-            c | isSpace c ->
-                return (Just xs)
+            c | isSpace c -> return (Just xs)
             '\DEL' ->
-                if xs == "" then
+                if null xs then
                     getUserInputWithTimer' "" deadline
                 else do
                     putStr removeLastCharacter
