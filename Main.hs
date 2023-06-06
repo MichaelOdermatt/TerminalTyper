@@ -41,26 +41,24 @@ startTypingLoop typingDuration = do
 -}
 typingLoop :: UTCTime -> Int -> IO ()
 typingLoop deadline typingDuration = do
-    randomNums <- getListOfRandomInts 50 (length wordBank - 1)
+    randomNums <- getListOfRandomInts 100 (length wordBank - 1)
     let initialWordList = getWordsFromWordBank randomNums
     typingLoop' initialWordList 0 0 typingDuration deadline
 
 typingLoop' :: [String] -> Int -> Int -> Int -> UTCTime -> IO ()
 typingLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
-    randomNum <- getRandomInt (length wordBank - 1)
-    let extendedWordList = wordList ++ [wordBank !! randomNum]
     putStr clearScreen
     putStrLn ""
-    putStrLn $ insertLineBreaks $ joinStringsWithSpaces $ highlightStringInList extendedWordList wordIndex
+    putStrLn $ insertLineBreaks $ joinStringsWithSpaces $ highlightStringInList wordList wordIndex
     putStrLn ""
     possibleWordFromUser <- getUserInputWithTimer deadline
     case possibleWordFromUser of
         Just wordFromUser -> do
             let wordFromList = wordList !! wordIndex
             if wordFromList == wordFromUser then
-                typingLoop' extendedWordList (wordIndex + 1) (numOfCorrectWords + 1) typingDuration deadline
+                typingLoop' wordList (wordIndex + 1) (numOfCorrectWords + 1) typingDuration deadline
             else
-                typingLoop' extendedWordList (wordIndex + 1) numOfCorrectWords typingDuration deadline
+                typingLoop' wordList (wordIndex + 1) numOfCorrectWords typingDuration deadline
         Nothing -> do
             putStr clearScreen
             putStrLn ""
@@ -144,6 +142,20 @@ insertLineBreaks' (x:xs) count
             getEntireEscapeSequence :: String -> String
             getEntireEscapeSequence xs = getAllElementsUpToPoint xs 'm'
 
+-- TODO first hightlight the current word
+-- Then Seperate the [String] to [[String]] where each array of strings is seperated at the first space after 80 characters
+-- Remove unwanted lists of strings
+-- Then join remaining arrays with \n's
+-- Finally join thoes strings with spaces
+breakStringsIntoGroups :: [String] -> [[String]]
+breakStringsIntoGroups [] = []
+breakStringsIntoGroups (word:words) = breakStringsIntoGroups' words [word] 0
+
+breakStringsIntoGroups' :: [String] -> [String] -> Int -> [[String]]
+breakStringsIntoGroups' [] currentSubList _ = [currentSubList]
+breakStringsIntoGroups' (word:words) currentSubList count
+    | count + length word >= lineCharacterLimit = currentSubList : breakStringsIntoGroups' words [word] (length word)
+    | otherwise = breakStringsIntoGroups' words (currentSubList ++ [word]) (count + length word)
 
 joinStringsWithSpaces :: [String] -> String
 joinStringsWithSpaces = foldr (\ x y -> x ++ " " ++ y) ""
@@ -171,6 +183,9 @@ removeLastCharacter = "\b \b"
 -- | The character limit per line when printing the word list.
 lineCharacterLimit :: Int
 lineCharacterLimit = 80
+
+numberOfLinesToPrint :: Int
+numberOfLinesToPrint = 4
 
 -------------------- ANSI escape sequences
 -- all excape codes can be found here https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
