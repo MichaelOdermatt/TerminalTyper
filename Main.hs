@@ -2,6 +2,7 @@ import Words (wordBank)
 import Text.Read (readMaybe)
 import Data.Char (isSpace)
 import Data.Time (NominalDiffTime, UTCTime, getCurrentTime, addUTCTime, diffUTCTime)
+import Data.List (intercalate)
 import System.IO (BufferMode (LineBuffering), BufferMode (NoBuffering), hSetBuffering, stdin, hSetEcho)
 import System.Random (randomRIO)
 import GHC.IO.Handle (hWaitForInput)
@@ -47,14 +48,16 @@ typingLoop deadline typingDuration = do
 
 typingLoop' :: [String] -> Int -> Int -> Int -> UTCTime -> IO ()
 typingLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
+    let allStringGroups = breakStringsIntoGroups $ highlightStringInList wordList wordIndex
+    let wordFromList = wordList !! wordIndex
+    -- let desiredGroups = getDesiredStringGroups allStringGroups wordFromList
     putStr clearScreen
     putStrLn ""
-    putStrLn $ insertLineBreaks $ joinStringsWithSpaces $ highlightStringInList wordList wordIndex
+    putStrLn (intercalate " " (intercalate ["\n"] allStringGroups))
     putStrLn ""
     possibleWordFromUser <- getUserInputWithTimer deadline
     case possibleWordFromUser of
         Just wordFromUser -> do
-            let wordFromList = wordList !! wordIndex
             if wordFromList == wordFromUser then
                 typingLoop' wordList (wordIndex + 1) (numOfCorrectWords + 1) typingDuration deadline
             else
@@ -123,30 +126,12 @@ highlightStringInList' (word:words) wordIndex count
     | wordIndex == count = (textColorCyan ++ word ++ textColorReset) : words
     | otherwise = word : highlightStringInList' words wordIndex (count + 1)
 
-{-  | Takes a string and inserts a line break at the next space character after every x 
-    amount of characters (x is the return of the lineCharacterLimit function).
--}
-insertLineBreaks :: String -> String
-insertLineBreaks x = insertLineBreaks' x 1
-
-insertLineBreaks' :: String -> Int -> String
-insertLineBreaks' [] _ = []
-insertLineBreaks' (x:xs) count
-    | x == '\ESC' = getEntireEscapeSequence (x:xs) ++ insertLineBreaks' (getWithoutEscapeSequence xs) count
-    | count >= lineCharacterLimit && x == ' ' = '\n' : insertLineBreaks' xs 1
-    | otherwise = x : insertLineBreaks' xs (count + 1)
-        where
-            -- | All color escape sequences end with the letter m.
-            getWithoutEscapeSequence :: String -> String
-            getWithoutEscapeSequence xs = getAllElementsAfterPoint xs 'm'
-            getEntireEscapeSequence :: String -> String
-            getEntireEscapeSequence xs = getAllElementsUpToPoint xs 'm'
-
 -- TODO first hightlight the current word
 -- Then Seperate the [String] to [[String]] where each array of strings is seperated at the first space after 80 characters
 -- Remove unwanted lists of strings
 -- Then join remaining arrays with \n's
 -- Finally join thoes strings with spaces
+
 breakStringsIntoGroups :: [String] -> [[String]]
 breakStringsIntoGroups [] = []
 breakStringsIntoGroups (word:words) = breakStringsIntoGroups' words [word] 0
@@ -154,17 +139,23 @@ breakStringsIntoGroups (word:words) = breakStringsIntoGroups' words [word] 0
 breakStringsIntoGroups' :: [String] -> [String] -> Int -> [[String]]
 breakStringsIntoGroups' [] currentSubList _ = [currentSubList]
 breakStringsIntoGroups' (word:words) currentSubList count
-    | count + length word >= lineCharacterLimit = currentSubList : breakStringsIntoGroups' words [word] (length word)
-    | otherwise = breakStringsIntoGroups' words (currentSubList ++ [word]) (count + length word)
+    | count + wordLength >= lineCharacterLimit = currentSubList : breakStringsIntoGroups' words [word] wordLength
+    | otherwise = breakStringsIntoGroups' words (currentSubList ++ [word]) (count + wordLength)
+    where
+        wordLength = length (removeEscapeSequenceFromString word)
 
-joinStringsWithSpaces :: [String] -> String
-joinStringsWithSpaces = foldr (\ x y -> x ++ " " ++ y) ""
+-- | Returns the given string will all Escape sequences (eg. \ESC***m) removed
+removeEscapeSequenceFromString :: String -> String
+removeEscapeSequenceFromString [] = []
+removeEscapeSequenceFromString (x:xs)
+    | x == '\ESC' = removeEscapeSequenceFromString (getAllElementsAfterPoint xs 'm')
+    | otherwise = x : removeEscapeSequenceFromString xs
 
--- | Returns the entire array up until and including the given value
+-- | Returns the entire list up until and including the given value
 getAllElementsUpToPoint :: Eq a => [a] -> a -> [a]
 getAllElementsUpToPoint xs val = takeWhile (/= val) xs ++ [val]
 
--- | Returns the remainder of the array after the given value 
+-- | Returns the remainder of the list after the given value 
 getAllElementsAfterPoint :: Eq a => [a] -> a -> [a]
 getAllElementsAfterPoint xs val = tail (dropWhile (/= val) xs)
 
