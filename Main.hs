@@ -49,15 +49,15 @@ typingLoop deadline typingDuration = do
 typingLoop' :: [String] -> Int -> Int -> Int -> UTCTime -> IO ()
 typingLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
     let allStringGroups = breakStringsIntoGroups $ highlightStringInList wordList wordIndex
-    let wordFromList = wordList !! wordIndex
-    -- let desiredGroups = getDesiredStringGroups allStringGroups wordFromList
+    let desiredGroups = getDesiredStringGroups allStringGroups wordIndex
     putStr clearScreen
     putStrLn ""
-    putStrLn (intercalate " " (intercalate ["\n"] allStringGroups))
+    putStrLn (intercalate " " (intercalate ["\n"] desiredGroups))
     putStrLn ""
     possibleWordFromUser <- getUserInputWithTimer deadline
     case possibleWordFromUser of
         Just wordFromUser -> do
+            let wordFromList = wordList !! wordIndex
             if wordFromList == wordFromUser then
                 typingLoop' wordList (wordIndex + 1) (numOfCorrectWords + 1) typingDuration deadline
             else
@@ -143,6 +143,20 @@ breakStringsIntoGroups' (word:words) currentSubList count
     | otherwise = breakStringsIntoGroups' words (currentSubList ++ [word]) (count + wordLength)
     where
         wordLength = length (removeEscapeSequenceFromString word)
+
+getDesiredStringGroups :: [[String]] -> Int -> [[String]]
+getDesiredStringGroups groups wordIndex = getDesiredStringGroups' groups wordIndex 0
+
+getDesiredStringGroups' :: [[String]] -> Int -> Int -> [[String]]
+getDesiredStringGroups' [] _ _ = []
+getDesiredStringGroups' (group:groups) wordIndex count
+    | count + length group <= wordIndex = getDesiredStringGroups' groups wordIndex (count + length group)
+    | otherwise = group : [nextGroup]
+    where
+        nextGroup
+            | null groups = []
+            | otherwise = head groups
+
 
 -- | Returns the given string will all Escape sequences (eg. \ESC***m) removed
 removeEscapeSequenceFromString :: String -> String
