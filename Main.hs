@@ -126,12 +126,10 @@ highlightStringInList' (word:words) wordIndex count
     | wordIndex == count = (textColorCyan ++ word ++ textColorReset) : words
     | otherwise = word : highlightStringInList' words wordIndex (count + 1)
 
--- TODO first hightlight the current word
--- Then Seperate the [String] to [[String]] where each array of strings is seperated at the first space after 80 characters
--- Remove unwanted lists of strings
--- Then join remaining arrays with \n's
--- Finally join thoes strings with spaces
-
+{-
+    | Takes a list of strings and splits them into multiple lists, each list's length is determined by
+    the line character limit function.
+-}
 breakStringsIntoGroups :: [String] -> [[String]]
 breakStringsIntoGroups [] = []
 breakStringsIntoGroups (word:words) = breakStringsIntoGroups' words [word] 0
@@ -144,6 +142,10 @@ breakStringsIntoGroups' (word:words) currentSubList count
     where
         wordLength = length (removeEscapeSequenceFromString word)
 
+{-
+    | Takes a list of lists of strings and a word index. Returns both the list that the corresponding word to
+    the given word index is contained in, and the following list.
+-}
 getDesiredStringGroups :: [[String]] -> Int -> [[String]]
 getDesiredStringGroups groups wordIndex = getDesiredStringGroups' groups wordIndex 0
 
@@ -188,9 +190,6 @@ removeLastCharacter = "\b \b"
 -- | The character limit per line when printing the word list.
 lineCharacterLimit :: Int
 lineCharacterLimit = 80
-
-numberOfLinesToPrint :: Int
-numberOfLinesToPrint = 4
 
 -------------------- ANSI escape sequences
 -- all excape codes can be found here https://gist.github.com/fnky/458719343aabd01cfb17a3a4f7296797
