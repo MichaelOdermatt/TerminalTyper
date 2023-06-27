@@ -33,17 +33,20 @@ startTypingLoop :: Int -> IO ()
 startTypingLoop typingDuration = do
     hSetBuffering stdin NoBuffering
     hSetEcho stdin False
-    startTime <- getCurrentTime
-    typingLoop (addUTCTime (convertToNominalDiffTime typingDuration) startTime) typingDuration
+    typingLoop typingDuration
 
 {-
     | The main loop function which takes a UTCTime deadline value.
     This value represents the time limit in which the user can type.
+    The typingDuration parameter is the amount of seconds the main
+    typing loop should run for.
 -}
-typingLoop :: UTCTime -> Int -> IO ()
-typingLoop deadline typingDuration = do
-    randomNums <- getListOfRandomInts 100 (length wordBank - 1)
+typingLoop :: Int -> IO ()
+typingLoop typingDuration = do
+    randomNums <- getListOfRandomInts (getNumOfWords typingDuration) (length wordBank - 1)
     let initialWordList = getWordsFromWordBank randomNums
+    startTime <- getCurrentTime
+    let deadline = addUTCTime (convertToNominalDiffTime typingDuration) startTime
     typingLoop' initialWordList 0 0 typingDuration deadline
 
 typingLoop' :: [String] -> Int -> Int -> Int -> UTCTime -> IO ()
@@ -52,7 +55,7 @@ typingLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
     let desiredGroups = getDesiredStringGroups allStringGroups wordIndex
     putStr clearScreen
     putStrLn ""
-    putStrLn (intercalate " " (intercalate ["\n"] desiredGroups))
+    putStrLn (unwords (intercalate ["\n"] desiredGroups))
     putStrLn ""
     possibleWordFromUser <- getUserInputWithTimer deadline
     case possibleWordFromUser of
@@ -183,6 +186,12 @@ divideIntToFloat x y = fromIntegral x / fromIntegral y
 
 convertToNominalDiffTime :: Int -> NominalDiffTime
 convertToNominalDiffTime seconds = realToFrac (toRational seconds) :: NominalDiffTime
+
+-- | This function takes the typing duration and from it gets the number of words to generate.
+getNumOfWords :: Int -> Int
+getNumOfWords typingDuration 
+    | typingDuration < 10 = 50
+    | otherwise = typingDuration * 5
 
 removeLastCharacter :: String
 removeLastCharacter = "\b \b"
