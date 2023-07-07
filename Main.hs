@@ -55,7 +55,7 @@ typingLoop' wordList wordIndex numOfCorrectWords typingDuration deadline = do
     let desiredGroups = getDesiredStringGroups allStringGroups wordIndex
     putStr clearScreen
     putStrLn ""
-    putStrLn (unwords (intercalate ["\n"] desiredGroups))
+    putStrLn (modifiedUnwords (intercalate ["\n"] desiredGroups))
     putStrLn ""
     possibleWordFromUser <- getUserInputWithTimer deadline
     case possibleWordFromUser of
@@ -162,13 +162,19 @@ getDesiredStringGroups' (group:groups) wordIndex count
             | null groups = []
             | otherwise = head groups
 
-
 -- | Returns the given string will all Escape sequences (eg. \ESC***m) removed
 removeEscapeSequenceFromString :: String -> String
 removeEscapeSequenceFromString [] = []
 removeEscapeSequenceFromString (x:xs)
     | x == '\ESC' = removeEscapeSequenceFromString (getAllElementsAfterPoint xs 'm')
     | otherwise = x : removeEscapeSequenceFromString xs
+
+-- | A modified version of unwords with one distinction: any strings that are simply a line break, do not get spaces appended after them
+modifiedUnwords :: [String] -> String
+modifiedUnwords [] = []
+modifiedUnwords (word:words)
+    | word == "\n" = word ++ modifiedUnwords words
+    | otherwise = word ++ " " ++ modifiedUnwords words
 
 -- | Returns the entire list up until and including the given value
 getAllElementsUpToPoint :: Eq a => [a] -> a -> [a]
