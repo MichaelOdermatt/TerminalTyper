@@ -1,5 +1,7 @@
 # terminal-typer
 A terminal based typing game written in haskell.
+<br>
+*Only Works on Linux and Mac*
 
 ## Screenshots
 <p align="center">
