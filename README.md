@@ -1,4 +1,4 @@
-# terminal-typer
+# Terminal Typer
 A terminal based typing game written in haskell.
 <br>
 *Only Works on Linux and Mac*
