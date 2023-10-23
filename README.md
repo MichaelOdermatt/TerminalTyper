@@ -1,5 +1,7 @@
 # Terminal Typer
 A terminal based typing game written in haskell.
+Built out of curiosity with the goal to get a better grasp of the fundamentals of functional programming.
+<br>
 <br>
 *Only Works on Linux and Mac*
 
