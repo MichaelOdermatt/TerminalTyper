@@ -5,6 +5,10 @@
 </p>
 
 A terminal based typing game written in haskell.
-<br>
-<br>
-*Only Works on Linux and Mac*
+
+## Note
+Due to the use of [hSetBuffering](https://hackage.haskell.org/package/base-4.19.1.0/docs/System-IO.html#v:hSetBuffering), this only works on Linux and MacOS.
+
+Requires the following packages:
+- [Random](https://hackage.haskell.org/package/random)
+- [Time](https://hackage.haskell.org/package/time)
